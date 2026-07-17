@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>课堂星星榜</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f4f4f2;
+    --card: #ffffff;
+    --line: #d8d8d4;
+    --ink: #1c1c1a;
+    --dim: #8a8a84;
+    --star: #1f8a4c;
+    --star-bg: #e6f5ec;
+    --warn: #c0392b;
+    --warn-bg: #fbeae8;
+  }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ---------- 通用面板 ---------- */
+  .screen {
+    height: 100vh;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .panel {
+    width: 100%;
+    max-width: 580px;
+    max-height: 92vh;
+    overflow-y: auto;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 30px;
+  }
+  .panel h1 { font-size: 22px; margin-bottom: 6px; }
+  .panel > p { color: var(--dim); font-size: 14px; margin-bottom: 18px; line-height: 1.6; }
+  label { display: block; font-size: 13px; color: var(--dim); margin: 14px 0 5px; }
+  input[type=text], textarea {
+    width: 100%;
+    padding: 11px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  textarea { height: 210px; resize: vertical; }
+  .byline { margin-top: 18px; font-size: 12px; color: var(--dim); text-align: center; }
+
+  button, select {
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-size: 14px;
+  }
+  button:hover { background: #ececea; }
+  .primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .primary:hover { background: #000; }
+  .danger { color: var(--warn); border-color: #e8c4bf; }
+  .danger:hover { background: var(--warn-bg); }
+  .clearall-wrap { text-align: center; margin-top: 16px; }
+  .linklike {
+    border: none; background: none; padding: 4px;
+    color: var(--dim); font-size: 12px;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .linklike:hover { background: none; color: var(--warn); }
+  .wide { width: 100%; padding: 14px; font-size: 16px; margin-top: 18px; }
+  .row { display: flex; gap: 8px; margin-top: 14px; }
+  .row button { flex: 1; }
+
+  /* ---------- 看板 ---------- */
+  #board { height: 100vh; display: none; flex-direction: column; }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--card);
+    flex: 0 0 auto;
+  }
+  .bar .spacer { flex: 1; }
+  .bar .hint { color: var(--dim); font-size: 13px; }
+  .bar .lbl { color: var(--dim); font-size: 13px; margin-right: -3px; }
+  #classSel {
+    font-weight: 700;
+    font-size: 15px;
+    padding: 9px 8px;
+    border-color: var(--ink);
+    max-width: 190px;
+  }
+  .ico { width: 36px; padding: 9px 0; text-align: center; }
+
+  .grid {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+    gap: 9px;
+    padding: 11px;
+    overflow: hidden;
+  }
+
+  .stu {
+    position: relative;
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 10px;
+    cursor: pointer;
+    user-select: none;
+    transition: transform .08s, background .15s, border-color .15s;
+    min-height: 0;
+  }
+  .stu:active { transform: scale(.97); }
+  .stu .first {
+    font-size: clamp(18px, 2.1vw, 34px);
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
+    word-break: break-word;
+  }
+  .stu .rest {
+    font-size: clamp(11px, 1vw, 15px);
+    color: var(--dim);
+    margin-top: 2px;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .stu .tally {
+    margin-top: 6px;
+    font-size: clamp(13px, 1.3vw, 20px);
+    font-weight: 700;
+    letter-spacing: 1px;
+    min-height: 1.2em;
+  }
+  .stu.has-star { background: var(--star-bg); border-color: var(--star); }
+  .stu.has-star .tally { color: var(--star); }
+  .stu.has-warn { background: var(--warn-bg); border-color: var(--warn); }
+  .stu.has-warn .tally { color: var(--warn); }
+
+  .flag {
+    position: absolute;
+    top: 5px; right: 5px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--dim);
+    font-size: 15px;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    opacity: .35;
+    padding: 0;
+  }
+  .stu:hover .flag { opacity: 1; }
+  .flag:hover { background: var(--warn); border-color: var(--warn); color: #fff; }
+  .stu.has-warn .flag { opacity: 1; background: var(--warn); border-color: var(--warn); color: #fff; }
+
+  /* ---------- 浮层 / 小结 ---------- */
+  .modal {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.5);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 24px;
+    z-index: 10;
+  }
+  .steps { list-style: none; }
+  .steps li {
+    display: flex; gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid #f0f0ee;
+    font-size: 15px; line-height: 1.5;
+  }
+  .steps li:last-child { border-bottom: 0; }
+  .steps .n {
+    flex: 0 0 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--ink); color: #fff;
+    font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .steps b { color: var(--ink); }
+  .steps .sub { color: var(--dim); font-size: 13px; }
+
+  .sumline {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 16px; line-height: 1.8;
+    background: var(--bg);
+  }
+  .sumline b.s { color: var(--star); }
+  .sumline b.w { color: var(--warn); }
+  .sumline b.b { color: #96650a; }
+</style>
+</head>
+<body>
+
+<!-- ============ 设置 ============ -->
+<div class="screen" id="setup">
+  <div class="panel">
+    <h1 id="setupTitle">添加一个班</h1>
+    <p>名单只需贴一次。以后每天打开，所有班都在，选一下就能上课。</p>
+
+    <label>班级名称（比如 6A、Grade 4-2）</label>
+    <input type="text" id="clsName" placeholder="6A">
+
+    <label>学生名单 —— 一行一个名字</label>
+    <textarea id="names" placeholder="Khalifa Al Mansoori&#10;Fatima Al Zaabi&#10;Ahmed Al Nuaimi&#10;Mariam Al Shamsi&#10;Saeed Al Ketbi&#10;Noura Al Suwaidi"></textarea>
+
+    <button class="primary wide" id="save">保存，开始上课</button>
+    <div class="row">
+      <button id="cancel">取消</button>
+      <button class="danger" id="delCls">删除这个班</button>
+    </div>
+    <div class="clearall-wrap" id="clearWrap">
+      <button class="linklike" id="clearAll">彻底清空全部班级，从头开始</button>
+    </div>
+    <div class="byline">Designed by Dr. Zhou Fang</div>
+  </div>
+</div>
+
+<!-- ============ 看板 ============ -->
+<div id="board">
+  <div class="bar">
+    <span class="lbl">班级</span>
+    <select id="classSel" title="切换班级，或新建一个班"></select>
+    <button id="undo">↩ 撤销</button>
+    <span class="hint">点名字 = ⭐　点右上角小圈 = ⚠</span>
+    <span class="spacer"></span>
+    <button class="ico" id="help" title="怎么用">?</button>
+    <button id="edit">改名单</button>
+    <button class="primary" id="finish">下课小结</button>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- ============ 首次浮层 ============ -->
+<div class="modal" id="guide">
+  <div class="panel">
+    <h1>课堂星星榜 · 怎么用</h1>
+    <p>投影出来，学生自己看得见。一共就两个动作。</p>
+    <ol class="steps">
+      <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。</span></div></li>
+      <li><span class="n">2</span><div><b>点卡片右上角的小圈 = 标 ⚠ 表现不佳</b><br><span class="sub">卡片变红。做得小是防手滑——当众给错一个警告，比给错一颗星麻烦得多。<b>已有的星星不会被拿走</b>，会和 ⚠ 一起留在卡上：好事和错事都是真的，谁也不抵消谁。改好了再点一下小圈，警告就撤了。</span></div></li>
+      <li><span class="n">3</span><div><b>点错了就按「撤销」</b><br><span class="sub">在左上角，可以连按，一路退回去。</span></div></li>
+      <li><span class="n">4</span><div><b>教好几个班？用左上角的「班级」下拉</b><br><span class="sub">上课前选一下这节课是哪个班，就这一下。<b>加新班：点开同一个下拉，最后一项就是「＋ 新建班级」。</b>每个班的名单和当堂星星各存各的，互不影响。想改班名、加减学生或<b>删掉一个班</b>，都在「改名单」里。</span></div></li>
+      <li><span class="n">5</span><div><b>下课点「下课小结」</b><br><span class="sub">它列出本节课要记的那两三个学生，可以下载成表格留痕，再照着在 Excel 里标一下。星星下课清空，Excel 才是成绩账本。</span></div></li>
+    </ol>
+    <button class="primary wide" id="guideOk">知道了，开始上课</button>
+  </div>
+</div>
+
+<!-- ============ 下课小结 ============ -->
+<div class="modal" id="summary">
+  <div class="panel">
+    <h1>本节课小结</h1>
+    <p>把下面这几个学生标进 Excel「课堂记录」的本节课列，其他人留空即可。</p>
+    <div class="sumline" id="sumtext"></div>
+    <div class="row">
+      <button id="download">⤓ 下载留痕</button>
+      <button id="copy">复制</button>
+      <button id="back">继续上课</button>
+    </div>
+    <button class="primary wide" id="next">下课，清空星星</button>
+  </div>
+</div>
+
+<script>
+const KEY = 'starboard.v2';
+const KEY_GUIDE = 'starboard.guideSeen';
+
+// data = { classes:[{name, roster:[full], scores:[{star,warn}]}], active:0 }
+let data = { classes: [], active: 0 };
+let history = [];
+let editingNew = false;
+
+const $ = id => document.getElementById(id);
+const cur = () => data.classes[data.active];
+
+function splitName(full) {
+  const p = full.trim().split(/\s+/);
+  return { first: p[0], rest: p.slice(1).join(' ') };
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (d && d.classes && d.classes.length) { data = d; return true; }
+  } catch {}
+  // 从旧版（单班）迁移
+  try {
+    const old = JSON.parse(localStorage.getItem('cls.roster') || '[]');
+    if (old.length) {
+      data = { classes: [{ name: '我的班级', roster: old, scores: old.map(() => ({ star: 0, warn: false })) }], active: 0 };
+      save();
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+function show(which) {
+  $('setup').style.display = which === 'setup' ? 'flex' : 'none';
+  $('board').style.display = which === 'board' ? 'flex' : 'none';
+}
+
+function renderClassSel() {
+  const sel = $('classSel');
+  sel.innerHTML = '';
+  data.classes.forEach((c, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = c.name;
+    sel.appendChild(o);
+  });
+  const o = document.createElement('option');
+  o.value = 'new'; o.textContent = '＋ 新建班级…';
+  sel.appendChild(o);
+  sel.value = data.active;
+}
+
+function render() {
+  renderClassSel();
+  const c = cur();
+  const grid = $('grid');
+  grid.innerHTML = '';
+  c.roster.forEach((full, i) => {
+    const n = splitName(full);
+    const sc = c.scores[i];
+    const card = document.createElement('div');
+    card.className = 'stu' + (sc.warn ? ' has-warn' : (sc.star > 0 ? ' has-star' : ''));
+
+    // 有星星就一直显示，警告叠加在后面，不覆盖
+    let tally = '';
+    if (sc.star > 0) tally = sc.star <= 4 ? '⭐'.repeat(sc.star) : '⭐×' + sc.star;
+    if (sc.warn) tally = tally ? tally + '　⚠' : '⚠';
+
+    card.innerHTML = '<div class="first"></div><div class="rest"></div><div class="tally"></div>' +
+                     '<button class="flag" title="标记表现不佳">⚠</button>';
+    card.querySelector('.first').textContent = n.first;
+    card.querySelector('.rest').textContent = n.rest;
+    card.querySelector('.tally').textContent = tally;
+
+    card.addEventListener('click', () => act(i, 'star'));
+    card.querySelector('.flag').addEventListener('click', e => { e.stopPropagation(); act(i, 'warn'); });
+    grid.appendChild(card);
+  });
+}
+
+function act(i, type) {
+  history.push(JSON.stringify(cur().scores));
+  if (history.length > 80) history.shift();
+  const sc = cur().scores[i];
+  // 星星和警告并存：谁也不抵消谁，两件事都是真实发生的
+  if (type === 'star') { sc.star++; }
+  else { sc.warn = !sc.warn; }
+  save(); render();
+}
+
+$('undo').onclick = () => {
+  if (!history.length) return;
+  cur().scores = JSON.parse(history.pop());
+  save(); render();
+};
+
+$('classSel').onchange = e => {
+  if (e.target.value === 'new') {
+    editingNew = true;
+    $('setupTitle').textContent = '添加一个班';
+    $('clsName').value = '';
+    $('names').value = '';
+    $('delCls').style.display = 'none';
+    $('clearWrap').style.display = 'none';
+    $('cancel').style.display = data.classes.length ? '' : 'none';
+    show('setup');
+  } else {
+    data.active = +e.target.value;
+    history = [];
+    save(); render();
+  }
+};
+
+$('edit').onclick = () => {
+  editingNew = false;
+  $('setupTitle').textContent = '改名单';
+  $('clsName').value = cur().name;
+  $('names').value = cur().roster.join('\n');
+  $('delCls').style.display = '';
+  $('clearWrap').style.display = data.classes.length > 1 ? '' : 'none';
+  $('cancel').style.display = '';
+  show('setup');
+};
+
+$('save').onclick = () => {
+  const name = $('clsName').value.trim();
+  const list = $('names').value.split('\n').map(s => s.trim()).filter(Boolean);
+  if (!name) { alert('请给这个班起个名字，比如 6A。'); return; }
+  if (!list.length) { alert('请贴上学生名单，一行一个名字。'); return; }
+
+  if (editingNew) {
+    data.classes.push({ name, roster: list, scores: list.map(() => ({ star: 0, warn: false })) });
+    data.active = data.classes.length - 1;
+  } else {
+    const c = cur();
+    // 名单改了也尽量保住已有的星星：按名字对齐
+    const oldMap = {};
+    c.roster.forEach((n, i) => oldMap[n] = c.scores[i]);
+    c.name = name;
+    c.roster = list;
+    c.scores = list.map(n => oldMap[n] || { star: 0, warn: false });
+  }
+  history = [];
+  save();
+  show('board'); render();
+};
+
+$('cancel').onclick = () => { renderClassSel(); show('board'); render(); };
+
+$('delCls').onclick = () => {
+  const name = cur().name;
+  const last = data.classes.length === 1;
+  const msg = last
+    ? '删除「' + name + '」——这是最后一个班，删掉后会回到空白，重新添加班级。\n\n名单和星星会消失，Excel 里的成绩不受影响。确定吗？'
+    : '删除「' + name + '」这个班？名单和星星会消失，Excel 里的成绩不受影响。';
+  if (!confirm(msg)) return;
+  data.classes.splice(data.active, 1);
+  data.active = 0;
+  history = [];
+  save();
+  if (data.classes.length === 0) {
+    localStorage.removeItem(KEY);
+    editingNew = true;
+    $('setupTitle').textContent = '添加一个班';
+    $('clsName').value = ''; $('names').value = '';
+    $('delCls').style.display = 'none';
+    $('cancel').style.display = 'none';
+    $('clearWrap').style.display = 'none';
+    show('setup');
+  } else {
+    show('board'); render();
+  }
+};
+
+$('clearAll').onclick = () => {
+  if (!confirm('彻底清空全部 ' + data.classes.length + ' 个班级、所有名单和星星，回到刚打开时的样子？\n\n这一步无法撤销。Excel 里的成绩不受影响。')) return;
+  if (!confirm('再确认一次：真的全部删除吗？')) return;
+  localStorage.removeItem(KEY);
+  data = { classes: [], active: 0 };
+  history = [];
+  editingNew = true;
+  $('setupTitle').textContent = '添加一个班';
+  $('clsName').value = ''; $('names').value = '';
+  $('delCls').style.display = 'none';
+  $('cancel').style.display = 'none';
+  $('clearWrap').style.display = 'none';
+  show('setup');
+};
+
+function marked() {
+  const c = cur();
+  const all = c.roster.map((n, i) => ({ name: n, s: c.scores[i] }));
+  return {
+    stars: all.filter(x => x.s.star > 0 && !x.s.warn),
+    warns: all.filter(x => x.s.warn && x.s.star === 0),
+    both:  all.filter(x => x.s.warn && x.s.star > 0),
+  };
+}
+
+const starTxt = x => x.name + (x.s.star > 1 ? ' ×' + x.s.star : '');
+
+$('finish').onclick = () => {
+  const { stars, warns, both } = marked();
+  let html = '';
+  if (stars.length) html += '<b class="s">⭐ 优秀：</b>' + stars.map(starTxt).join('、') + '<br>';
+  if (warns.length) html += '<b class="w">⚠ 不佳：</b>' + warns.map(x => x.name).join('、') + '<br>';
+  if (both.length) html += '<b class="b">⚡ 两者都有 —— Excel 记 ⭐ 还是 ⚠，你判断：</b>' +
+    both.map(x => x.name + '（⭐' + x.s.star + '，有违纪）').join('、');
+  if (!html) html = '<span style="color:var(--dim)">本节课没有任何标记，Excel 里这一列整列留空即可。</span>';
+  $('sumtext').innerHTML = html;
+  $('summary').style.display = 'flex';
+};
+
+$('download').onclick = () => {
+  const { stars, warns, both } = marked();
+  const today = new Date().toISOString().slice(0, 10);
+  const cls = cur().name;
+  const rows = [['班级', '日期', '学生姓名', '本节课表现', '星数']];
+  stars.forEach(x => rows.push([cls, today, x.name, '⭐ 优秀', x.s.star]));
+  warns.forEach(x => rows.push([cls, today, x.name, '⚠ 不佳', 0]));
+  both.forEach(x => rows.push([cls, today, x.name, '⭐+⚠ 两者都有', x.s.star]));
+  if (rows.length === 1) rows.push([cls, today, '（本节课无标记）', '', '']);
+
+  const csv = '﻿' + rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = cls + '_' + today + '_课堂记录.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+$('copy').onclick = () => {
+  navigator.clipboard.writeText($('sumtext').innerText).then(() => {
+    $('copy').textContent = '已复制 ✓';
+    setTimeout(() => $('copy').textContent = '复制', 1500);
+  });
+};
+
+$('back').onclick = () => $('summary').style.display = 'none';
+
+$('next').onclick = () => {
+  if (!confirm('清空「' + cur().name + '」本节课的星星？\n（名单保留，其他班不受影响）')) return;
+  cur().scores = cur().roster.map(() => ({ star: 0, warn: false }));
+  history = [];
+  save();
+  $('summary').style.display = 'none';
+  render();
+};
+
+$('help').onclick = () => $('guide').style.display = 'flex';
+$('guideOk').onclick = () => {
+  $('guide').style.display = 'none';
+  localStorage.setItem(KEY_GUIDE, '1');
+};
+
+// ---- 启动 ----
+if (load()) {
+  show('board'); render();
+} else {
+  editingNew = true;
+  $('delCls').style.display = 'none';
+  $('clearWrap').style.display = 'none';
+  $('cancel').style.display = 'none';
+  show('setup');
+}
+if (!localStorage.getItem(KEY_GUIDE)) $('guide').style.display = 'flex';
+</script>
+</body>
+</html>
