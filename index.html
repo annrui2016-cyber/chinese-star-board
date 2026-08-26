@@ -237,7 +237,7 @@
     <div class="clearall-wrap" id="clearWrap">
       <button class="linklike" id="clearAll">彻底清空全部班级，从头开始</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.2</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.3</div>
   </div>
 </div>
 
@@ -260,7 +260,7 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.2</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.3</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。</span></div></li>
@@ -299,6 +299,21 @@ let editingNew = false;
 
 const $ = id => document.getElementById(id);
 const cur = () => data.classes[data.active];
+
+// 页面内自绘确认框：不依赖浏览器原生 confirm（原生弹窗可能被浏览器抑制而静默失败）
+function ask(msg, onYes) {
+  const wrap = document.createElement('div');
+  wrap.className = 'modal';
+  wrap.style.display = 'flex';
+  wrap.style.zIndex = 50;
+  wrap.innerHTML = '<div class="panel" style="max-width:430px">' +
+    '<p style="font-size:15px;line-height:1.7;color:var(--ink);white-space:pre-line;margin-bottom:18px"></p>' +
+    '<div class="row"><button class="ask-no">取消</button><button class="primary ask-yes">确定</button></div></div>';
+  wrap.querySelector('p').textContent = msg;
+  wrap.querySelector('.ask-no').onclick = () => wrap.remove();
+  wrap.querySelector('.ask-yes').onclick = () => { wrap.remove(); onYes(); };
+  document.body.appendChild(wrap);
+}
 
 function splitName(full) {
   const p = full.trim().split(/\s+/);
@@ -399,10 +414,11 @@ $('undo').onclick = () => {
 };
 
 $('resetBtn').onclick = () => {
-  if (!confirm('清空「' + cur().name + '」本节课的所有 ⭐ 和 ⚠，从头开始？\n（名单保留，其他班不受影响）')) return;
-  cur().scores = cur().roster.map(() => ({ star: 0, warn: false }));
-  cur().hist = [];
-  save(); render();
+  ask('清空「' + cur().name + '」本节课的所有 ⭐ 和 ⚠，从头开始？\n（名单保留，其他班不受影响）', () => {
+    cur().scores = cur().roster.map(() => ({ star: 0, warn: false }));
+    cur().hist = [];
+    save(); render();
+  });
 };
 
 $('classSel').onchange = e => {
@@ -463,36 +479,39 @@ $('delCls').onclick = () => {
   const msg = last
     ? '删除「' + name + '」——这是最后一个班，删掉后会回到空白，重新添加班级。\n\n名单和星星会消失，Excel 里的成绩不受影响。确定吗？'
     : '删除「' + name + '」这个班？名单和星星会消失，Excel 里的成绩不受影响。';
-  if (!confirm(msg)) return;
-  data.classes.splice(data.active, 1);
-  data.active = 0;
-  save();
-  if (data.classes.length === 0) {
-    localStorage.removeItem(KEY);
-    editingNew = true;
-    $('setupTitle').textContent = '添加一个班';
-    $('clsName').value = ''; $('names').value = '';
-    $('delCls').style.display = 'none';
-    $('cancel').style.display = 'none';
-    $('clearWrap').style.display = 'none';
-    show('setup');
-  } else {
-    show('board'); render();
-  }
+  ask(msg, () => {
+    data.classes.splice(data.active, 1);
+    data.active = 0;
+    save();
+    if (data.classes.length === 0) {
+      localStorage.removeItem(KEY);
+      editingNew = true;
+      $('setupTitle').textContent = '添加一个班';
+      $('clsName').value = ''; $('names').value = '';
+      $('delCls').style.display = 'none';
+      $('cancel').style.display = 'none';
+      $('clearWrap').style.display = 'none';
+      show('setup');
+    } else {
+      show('board'); render();
+    }
+  });
 };
 
 $('clearAll').onclick = () => {
-  if (!confirm('彻底清空全部 ' + data.classes.length + ' 个班级、所有名单和星星，回到刚打开时的样子？\n\n这一步无法撤销。Excel 里的成绩不受影响。')) return;
-  if (!confirm('再确认一次：真的全部删除吗？')) return;
-  localStorage.removeItem(KEY);
-  data = { classes: [], active: 0 };
-  editingNew = true;
-  $('setupTitle').textContent = '添加一个班';
-  $('clsName').value = ''; $('names').value = '';
-  $('delCls').style.display = 'none';
-  $('cancel').style.display = 'none';
-  $('clearWrap').style.display = 'none';
-  show('setup');
+  ask('彻底清空全部 ' + data.classes.length + ' 个班级、所有名单和星星，回到刚打开时的样子？\n\n这一步无法撤销。Excel 里的成绩不受影响。', () => {
+    ask('再确认一次：真的全部删除吗？', () => {
+      localStorage.removeItem(KEY);
+      data = { classes: [], active: 0 };
+      editingNew = true;
+      $('setupTitle').textContent = '添加一个班';
+      $('clsName').value = ''; $('names').value = '';
+      $('delCls').style.display = 'none';
+      $('cancel').style.display = 'none';
+      $('clearWrap').style.display = 'none';
+      show('setup');
+    });
+  });
 };
 
 function marked() {
@@ -547,12 +566,13 @@ $('copy').onclick = () => {
 $('back').onclick = () => $('summary').style.display = 'none';
 
 $('next').onclick = () => {
-  if (!confirm('清空「' + cur().name + '」本节课的星星？\n（名单保留，其他班不受影响）')) return;
-  cur().scores = cur().roster.map(() => ({ star: 0, warn: false }));
-  cur().hist = [];   // 新的一节课，从干净的撤销栈开始
-  save();
-  $('summary').style.display = 'none';
-  render();
+  ask('清空「' + cur().name + '」本节课的星星？\n（名单保留，其他班不受影响）', () => {
+    cur().scores = cur().roster.map(() => ({ star: 0, warn: false }));
+    cur().hist = [];   // 新的一节课，从干净的撤销栈开始
+    save();
+    $('summary').style.display = 'none';
+    render();
+  });
 };
 
 $('help').onclick = () => $('guide').style.display = 'flex';
