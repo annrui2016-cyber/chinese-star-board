@@ -237,7 +237,7 @@
     <div class="clearall-wrap" id="clearWrap">
       <button class="linklike" id="clearAll">彻底清空全部班级，从头开始</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.3</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.4</div>
   </div>
 </div>
 
@@ -260,12 +260,12 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.3</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.4</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。</span></div></li>
       <li><span class="n">2</span><div><b>点卡片右上角的小圈 = 标 ⚠ 表现不佳</b><br><span class="sub">卡片变红。做得小是防手滑——当众给错一个警告，比给错一颗星麻烦得多。<b>已有的星星不会被拿走</b>，会和 ⚠ 一起留在卡上：好事和错事都是真的，谁也不抵消谁。改好了再点一下小圈，警告就撤了。</span></div></li>
-      <li><span class="n">3</span><div><b>点错了按「撤销」，想重来按「重置」</b><br><span class="sub">都在左上角。撤销可以连按、一路退回去，刷新页面也不丢；重置一键清空本班的星星和警告，从头开始。</span></div></li>
+      <li><span class="n">3</span><div><b>点错了按「撤销」，想重来按「重置」</b><br><span class="sub">都在左上角。撤销可以连按、一路退回去，刷新页面也不丢。重置有两种：只清空星星（名单保留），或删掉整个班从头开始。</span></div></li>
       <li><span class="n">4</span><div><b>教好几个班？用左上角的「班级」下拉</b><br><span class="sub">上课前选一下这节课是哪个班，就这一下。<b>加新班：点开同一个下拉，最后一项就是「＋ 新建班级」。</b>每个班的名单和当堂星星各存各的，互不影响。想改班名、加减学生或<b>删掉一个班</b>，都在「改名单」里。</span></div></li>
       <li><span class="n">5</span><div><b>下课点「下课小结」</b><br><span class="sub">它列出本节课要记的那两三个学生，可以下载成表格留痕，再照着在 Excel 里标一下。星星下课清空，Excel 才是成绩账本。</span></div></li>
     </ol>
@@ -413,12 +413,46 @@ $('undo').onclick = () => {
   save(); render();
 };
 
+// 删除当前班（名单和星星一起删；删到零则回到「添加一个班」空白页）
+function removeCurrentClass() {
+  data.classes.splice(data.active, 1);
+  data.active = 0;
+  save();
+  if (data.classes.length === 0) {
+    localStorage.removeItem(KEY);
+    editingNew = true;
+    $('setupTitle').textContent = '添加一个班';
+    $('clsName').value = ''; $('names').value = '';
+    $('delCls').style.display = 'none';
+    $('cancel').style.display = 'none';
+    $('clearWrap').style.display = 'none';
+    show('setup');
+  } else {
+    show('board'); render();
+  }
+}
+
 $('resetBtn').onclick = () => {
-  ask('清空「' + cur().name + '」本节课的所有 ⭐ 和 ⚠，从头开始？\n（名单保留，其他班不受影响）', () => {
+  const wrap = document.createElement('div');
+  wrap.className = 'modal'; wrap.style.display = 'flex'; wrap.style.zIndex = 50;
+  wrap.innerHTML = '<div class="panel" style="max-width:440px">' +
+    '<p style="font-size:15px;line-height:1.7;color:var(--ink);margin-bottom:16px"></p>' +
+    '<button class="primary wide" style="margin-top:0" data-a="stars">清空本节课的 ⭐ 和 ⚠<br><span style="font-size:12px;font-weight:400;opacity:.75">名单保留，下节课接着用</span></button>' +
+    '<button class="wide danger" style="margin-top:10px" data-a="class">删除这个班，从头开始<br><span style="font-size:12px;font-weight:400;opacity:.75">名单和星星一起删掉</span></button>' +
+    '<button class="wide" style="margin-top:10px" data-a="cancel">取消</button></div>';
+  wrap.querySelector('p').textContent = '重置「' + cur().name + '」——想怎么重置？';
+  wrap.querySelector('[data-a="stars"]').onclick = () => {
+    wrap.remove();
     cur().scores = cur().roster.map(() => ({ star: 0, warn: false }));
     cur().hist = [];
     save(); render();
-  });
+  };
+  wrap.querySelector('[data-a="class"]').onclick = () => {
+    wrap.remove();
+    ask('确定删除「' + cur().name + '」？名单和星星都会消失，回到最初的空白页。\nExcel 里的成绩不受影响。', removeCurrentClass);
+  };
+  wrap.querySelector('[data-a="cancel"]').onclick = () => wrap.remove();
+  document.body.appendChild(wrap);
 };
 
 $('classSel').onchange = e => {
@@ -479,23 +513,7 @@ $('delCls').onclick = () => {
   const msg = last
     ? '删除「' + name + '」——这是最后一个班，删掉后会回到空白，重新添加班级。\n\n名单和星星会消失，Excel 里的成绩不受影响。确定吗？'
     : '删除「' + name + '」这个班？名单和星星会消失，Excel 里的成绩不受影响。';
-  ask(msg, () => {
-    data.classes.splice(data.active, 1);
-    data.active = 0;
-    save();
-    if (data.classes.length === 0) {
-      localStorage.removeItem(KEY);
-      editingNew = true;
-      $('setupTitle').textContent = '添加一个班';
-      $('clsName').value = ''; $('names').value = '';
-      $('delCls').style.display = 'none';
-      $('cancel').style.display = 'none';
-      $('clearWrap').style.display = 'none';
-      show('setup');
-    } else {
-      show('board'); render();
-    }
-  });
+  ask(msg, removeCurrentClass);
 };
 
 $('clearAll').onclick = () => {
