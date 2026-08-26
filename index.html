@@ -291,9 +291,9 @@
 const KEY = 'starboard.v2';
 const KEY_GUIDE = 'starboard.guideSeen';
 
-// data = { classes:[{name, roster:[full], scores:[{star,warn}]}], active:0 }
+// data = { classes:[{name, roster:[full], scores:[{star,warn}], hist:[json]}], active:0 }
+// hist = 该班的撤销栈，随 localStorage 持久化：刷新、切班都不丢
 let data = { classes: [], active: 0 };
-let history = [];
 let editingNew = false;
 
 const $ = id => document.getElementById(id);
@@ -308,13 +308,17 @@ function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (d && d.classes && d.classes.length) { data = d; return true; }
+    if (d && d.classes && d.classes.length) {
+      data = d;
+      data.classes.forEach(c => { if (!Array.isArray(c.hist)) c.hist = []; });  // 兼容旧存档
+      return true;
+    }
   } catch {}
   // 从旧版（单班）迁移
   try {
     const old = JSON.parse(localStorage.getItem('cls.roster') || '[]');
     if (old.length) {
-      data = { classes: [{ name: '我的班级', roster: old, scores: old.map(() => ({ star: 0, warn: false })) }], active: 0 };
+      data = { classes: [{ name: '我的班级', roster: old, scores: old.map(() => ({ star: 0, warn: false })), hist: [] }], active: 0 };
       save();
       return true;
     }
@@ -370,9 +374,10 @@ function render() {
 }
 
 function act(i, type) {
-  history.push(JSON.stringify(cur().scores));
-  if (history.length > 80) history.shift();
-  const sc = cur().scores[i];
+  const c = cur();
+  c.hist.push(JSON.stringify(c.scores));
+  if (c.hist.length > 80) c.hist.shift();
+  const sc = c.scores[i];
   // 星星和警告并存：谁也不抵消谁，两件事都是真实发生的
   if (type === 'star') { sc.star++; }
   else { sc.warn = !sc.warn; }
@@ -380,8 +385,15 @@ function act(i, type) {
 }
 
 $('undo').onclick = () => {
-  if (!history.length) return;
-  cur().scores = JSON.parse(history.pop());
+  const c = cur();
+  if (!c.hist || !c.hist.length) {
+    // 撤无可撤：给出可见反馈，不再静默
+    const btn = $('undo');
+    btn.textContent = '没有可撤的操作';
+    setTimeout(() => btn.textContent = '↩ 撤销', 1200);
+    return;
+  }
+  c.scores = JSON.parse(c.hist.pop());
   save(); render();
 };
 
@@ -396,8 +408,7 @@ $('classSel').onchange = e => {
     $('cancel').style.display = data.classes.length ? '' : 'none';
     show('setup');
   } else {
-    data.active = +e.target.value;
-    history = [];
+    data.active = +e.target.value;   // 每班有自己的撤销栈，切班不清
     save(); render();
   }
 };
@@ -420,7 +431,7 @@ $('save').onclick = () => {
   if (!list.length) { alert('请贴上学生名单，一行一个名字。'); return; }
 
   if (editingNew) {
-    data.classes.push({ name, roster: list, scores: list.map(() => ({ star: 0, warn: false })) });
+    data.classes.push({ name, roster: list, scores: list.map(() => ({ star: 0, warn: false })), hist: [] });
     data.active = data.classes.length - 1;
   } else {
     const c = cur();
@@ -430,8 +441,8 @@ $('save').onclick = () => {
     c.name = name;
     c.roster = list;
     c.scores = list.map(n => oldMap[n] || { star: 0, warn: false });
+    c.hist = [];   // 名单结构变了，旧快照对不上，清掉本班撤销栈
   }
-  history = [];
   save();
   show('board'); render();
 };
@@ -447,7 +458,6 @@ $('delCls').onclick = () => {
   if (!confirm(msg)) return;
   data.classes.splice(data.active, 1);
   data.active = 0;
-  history = [];
   save();
   if (data.classes.length === 0) {
     localStorage.removeItem(KEY);
@@ -468,7 +478,6 @@ $('clearAll').onclick = () => {
   if (!confirm('再确认一次：真的全部删除吗？')) return;
   localStorage.removeItem(KEY);
   data = { classes: [], active: 0 };
-  history = [];
   editingNew = true;
   $('setupTitle').textContent = '添加一个班';
   $('clsName').value = ''; $('names').value = '';
@@ -532,7 +541,7 @@ $('back').onclick = () => $('summary').style.display = 'none';
 $('next').onclick = () => {
   if (!confirm('清空「' + cur().name + '」本节课的星星？\n（名单保留，其他班不受影响）')) return;
   cur().scores = cur().roster.map(() => ({ star: 0, warn: false }));
-  history = [];
+  cur().hist = [];   // 新的一节课，从干净的撤销栈开始
   save();
   $('summary').style.display = 'none';
   render();
