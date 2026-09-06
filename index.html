@@ -56,6 +56,21 @@
     line-height: 1.5;
   }
   textarea { height: 210px; resize: vertical; }
+  .preview { margin-top: 9px; font-size: 13px; line-height: 1.5; }
+  .preview .cnt { color: var(--star); font-weight: 700; }
+  .preview .note { color: var(--dim); }
+  .pv-names {
+    margin-top: 6px;
+    display: flex; flex-wrap: wrap; gap: 4px;
+    max-height: 96px; overflow-y: auto;
+  }
+  .pv-names span {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 12px;
+  }
   .byline { margin-top: 18px; font-size: 12px; color: var(--dim); text-align: center; }
 
   button, select {
@@ -226,8 +241,12 @@
     <label>班级名称（比如 6A、Grade 4-2）</label>
     <input type="text" id="clsName" placeholder="6A">
 
-    <label>学生名单 —— 一行一个名字</label>
+    <label>学生名单 —— 一行一个名字；从 Excel 连学号一起复制过来也行，学号会自动去掉</label>
     <textarea id="names" placeholder="Khalifa Al Mansoori&#10;Fatima Al Zaabi&#10;Ahmed Al Nuaimi&#10;Mariam Al Shamsi&#10;Saeed Al Ketbi&#10;Noura Al Suwaidi"></textarea>
+    <div class="preview" id="pv" style="display:none">
+      <span class="cnt" id="pvCnt"></span> <span class="note" id="pvNote"></span>
+      <div class="pv-names" id="pvNames"></div>
+    </div>
 
     <button class="primary wide" id="save">保存，开始上课</button>
     <div class="row">
@@ -237,7 +256,7 @@
     <div class="clearall-wrap" id="clearWrap">
       <button class="linklike" id="clearAll">彻底清空全部班级，从头开始</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.4</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.5</div>
   </div>
 </div>
 
@@ -260,7 +279,7 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.4</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.5</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。</span></div></li>
@@ -313,6 +332,40 @@ function ask(msg, onYes) {
   wrap.querySelector('.ask-no').onclick = () => wrap.remove();
   wrap.querySelector('.ask-yes').onclick = () => { wrap.remove(); onYes(); };
   document.body.appendChild(wrap);
+}
+
+// 解析名单：容忍从 Excel 整块复制（姓名+学号两列、行首序号），只留名字
+function parseNames(text) {
+  let stripped = false;
+  const names = text.split('\n').map(line => {
+    let s = line.replace(/\t/g, ' ').trim();
+    if (!s) return '';
+    const before = s;
+    s = s.replace(/^\d+[\s.、)\-]*/, '').trim();   // 行首序号/学号
+    s = s.replace(/\s+\d+$/, '').trim();           // 行尾学号列
+    if (s !== before) stripped = true;
+    return s;
+  }).filter(Boolean);
+  return { names, stripped };
+}
+
+// 贴名单时的实时预览：识别到几个人、每人一张什么卡，贴完立刻看见
+function updatePreview() {
+  const { names, stripped } = parseNames($('names').value);
+  const pv = $('pv');
+  if (!names.length) { pv.style.display = 'none'; return; }
+  pv.style.display = '';
+  $('pvCnt').textContent = '识别到 ' + names.length + ' 人 ✓';
+  $('pvNote').textContent = stripped
+    ? '学号/序号已自动去掉，保存的就是下面这些名字'
+    : '保存后一人一张卡，就是下面这些名字';
+  const box = $('pvNames');
+  box.innerHTML = '';
+  names.forEach(n => {
+    const s = document.createElement('span');
+    s.textContent = n;
+    box.appendChild(s);
+  });
 }
 
 function splitName(full) {
@@ -423,6 +476,7 @@ function removeCurrentClass() {
     editingNew = true;
     $('setupTitle').textContent = '添加一个班';
     $('clsName').value = ''; $('names').value = '';
+    updatePreview();
     $('delCls').style.display = 'none';
     $('cancel').style.display = 'none';
     $('clearWrap').style.display = 'none';
@@ -461,6 +515,7 @@ $('classSel').onchange = e => {
     $('setupTitle').textContent = '添加一个班';
     $('clsName').value = '';
     $('names').value = '';
+    updatePreview();
     $('delCls').style.display = 'none';
     $('clearWrap').style.display = 'none';
     $('cancel').style.display = data.classes.length ? '' : 'none';
@@ -476,6 +531,7 @@ $('edit').onclick = () => {
   $('setupTitle').textContent = '改名单';
   $('clsName').value = cur().name;
   $('names').value = cur().roster.join('\n');
+  updatePreview();
   $('delCls').style.display = '';
   $('clearWrap').style.display = data.classes.length > 1 ? '' : 'none';
   $('cancel').style.display = '';
@@ -484,7 +540,7 @@ $('edit').onclick = () => {
 
 $('save').onclick = () => {
   const name = $('clsName').value.trim();
-  const list = $('names').value.split('\n').map(s => s.trim()).filter(Boolean);
+  const list = parseNames($('names').value).names;
   if (!name) { alert('请给这个班起个名字，比如 6A。'); return; }
   if (!list.length) { alert('请贴上学生名单，一行一个名字。'); return; }
 
@@ -524,6 +580,7 @@ $('clearAll').onclick = () => {
       editingNew = true;
       $('setupTitle').textContent = '添加一个班';
       $('clsName').value = ''; $('names').value = '';
+      updatePreview();
       $('delCls').style.display = 'none';
       $('cancel').style.display = 'none';
       $('clearWrap').style.display = 'none';
@@ -592,6 +649,8 @@ $('next').onclick = () => {
     render();
   });
 };
+
+$('names').addEventListener('input', updatePreview);
 
 $('help').onclick = () => $('guide').style.display = 'flex';
 $('guideOk').onclick = () => {
