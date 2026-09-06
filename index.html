@@ -256,7 +256,10 @@
     <div class="clearall-wrap" id="clearWrap">
       <button class="linklike" id="clearAll">彻底清空全部班级，从头开始</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.5</div>
+    <div class="clearall-wrap" style="margin-top:8px">
+      <button class="linklike" id="showGuide" style="color:var(--dim)">使用说明</button>
+    </div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.6</div>
   </div>
 </div>
 
@@ -279,7 +282,7 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.5</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.6</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。</span></div></li>
@@ -651,6 +654,7 @@ $('next').onclick = () => {
 };
 
 $('names').addEventListener('input', updatePreview);
+$('showGuide').onclick = () => $('guide').style.display = 'flex';
 
 $('help').onclick = () => $('guide').style.display = 'flex';
 $('guideOk').onclick = () => {
