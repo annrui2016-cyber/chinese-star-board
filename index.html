@@ -207,7 +207,14 @@
   }
   .stu:hover .absflag { opacity: 1; }
   .absflag:hover { background: var(--dim); border-color: var(--dim); color: #fff; }
-  .stu.is-abs { opacity: .55; filter: grayscale(1); }
+  /* 缺勤：斜纹+虚线边+文字标注——投影仪上颜色会褪,纹理和文字不会 */
+  .stu.is-abs {
+    background: repeating-linear-gradient(45deg, #efefec 0 10px, #e1e1dd 10px 20px);
+    border-style: dashed;
+    border-color: #b8b8b3;
+  }
+  .stu.is-abs .first, .stu.is-abs .rest { color: #a6a6a1; }
+  .stu.is-abs .tally { color: var(--dim); letter-spacing: 3px; }
   .stu.is-abs .absflag { opacity: 1; background: var(--dim); border-color: var(--dim); color: #fff; }
   .stu.is-late { background: #fdf7e8; border-color: #d9a441; }
   .stu.is-late .absflag { opacity: 1; background: #d9a441; border-color: #d9a441; color: #fff; }
@@ -291,7 +298,7 @@
     <div class="clearall-wrap" style="margin-top:8px">
       <button class="linklike" id="showGuide" style="color:var(--dim)">使用说明</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.9.1</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.9.2</div>
   </div>
 </div>
 
@@ -314,7 +321,7 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.9.1</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.9.2</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。<b>如果他有警告在身，这一点会先消掉一个警告</b>——改过自新，消完警告才继续得星。</span></div></li>
@@ -476,6 +483,7 @@ function render() {
 
     // 迟到、星星、警告并列显示，谁也不覆盖谁；满3次警告改由名字旁的 ⚠3 红标承担
     let tally = '';
+    if (sc.att === 1) tally = '缺勤';
     if (sc.att === 2) tally = '⏰';
     if (sc.star > 0) tally += (tally ? ' ' : '') + (sc.star <= 4 ? '⭐'.repeat(sc.star) : '⭐×' + sc.star);
     if (sc.warn > 0 && sc.warn < 3) tally += (tally ? '　' : '') + '⚠'.repeat(sc.warn);
