@@ -191,6 +191,25 @@
   .flag:hover { background: var(--warn); border-color: var(--warn); color: #fff; }
   .stu.has-warn .flag { opacity: 1; background: var(--warn); border-color: var(--warn); color: #fff; }
 
+  .absflag {
+    position: absolute;
+    top: 5px; left: 5px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--dim);
+    font-size: 13px;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    opacity: .35;
+    padding: 0;
+  }
+  .stu:hover .absflag { opacity: 1; }
+  .absflag:hover { background: var(--dim); border-color: var(--dim); color: #fff; }
+  .stu.is-abs { opacity: .55; filter: grayscale(1); }
+  .stu.is-abs .absflag { opacity: 1; background: var(--dim); border-color: var(--dim); color: #fff; }
+
   /* ---------- 浮层 / 小结 ---------- */
   .modal {
     position: fixed; inset: 0;
@@ -259,7 +278,7 @@
     <div class="clearall-wrap" style="margin-top:8px">
       <button class="linklike" id="showGuide" style="color:var(--dim)">使用说明</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.6</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.7</div>
   </div>
 </div>
 
@@ -270,7 +289,7 @@
     <select id="classSel" title="切换班级，或新建一个班"></select>
     <button id="undo">↩ 撤销</button>
     <button id="resetBtn" title="清空本班所有星星和警告，从头开始">⟲ 重置</button>
-    <span class="hint">点名字 = ⭐　点右上角小圈 = ⚠</span>
+    <span class="hint">点名字 = ⭐　右上小圈 = ⚠　左上小圈 = 缺勤</span>
     <span class="spacer"></span>
     <button class="ico" id="help" title="怎么用">?</button>
     <button id="edit">改名单</button>
@@ -282,11 +301,11 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.6</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.7</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。</span></div></li>
-      <li><span class="n">2</span><div><b>点卡片右上角的小圈 = 标 ⚠ 表现不佳</b><br><span class="sub">卡片变红。做得小是防手滑——当众给错一个警告，比给错一颗星麻烦得多。<b>已有的星星不会被拿走</b>，会和 ⚠ 一起留在卡上：好事和错事都是真的，谁也不抵消谁。改好了再点一下小圈，警告就撤了。</span></div></li>
+      <li><span class="n">2</span><div><b>点卡片右上角的小圈 = 标 ⚠ 表现不佳</b><br><span class="sub">卡片变红。做得小是防手滑——当众给错一个警告，比给错一颗星麻烦得多。<b>已有的星星不会被拿走</b>，会和 ⚠ 一起留在卡上：好事和错事都是真的，谁也不抵消谁。改好了再点一下小圈，警告就撤了。<b>左上角的小圈 = 标缺勤</b>：卡片变灰、点卡片不再计星；下课小结会单独列出缺勤名单，照着标进 Excel 的出勤列。</span></div></li>
       <li><span class="n">3</span><div><b>点错了按「撤销」，想重来按「重置」</b><br><span class="sub">都在左上角。撤销可以连按、一路退回去，刷新页面也不丢。重置有两种：只清空星星（名单保留），或删掉整个班从头开始。</span></div></li>
       <li><span class="n">4</span><div><b>教好几个班？用左上角的「班级」下拉</b><br><span class="sub">上课前选一下这节课是哪个班，就这一下。<b>加新班：点开同一个下拉，最后一项就是「＋ 新建班级」。</b>每个班的名单和当堂星星各存各的，互不影响。想改班名、加减学生或<b>删掉一个班</b>，都在「改名单」里。</span></div></li>
       <li><span class="n">5</span><div><b>下课点「下课小结」</b><br><span class="sub">它列出本节课要记的那两三个学生，可以下载成表格留痕，再照着在 Excel 里标一下。星星下课清空，Excel 才是成绩账本。</span></div></li>
@@ -426,7 +445,7 @@ function render() {
     const n = splitName(full);
     const sc = c.scores[i];
     const card = document.createElement('div');
-    card.className = 'stu' + (sc.warn ? ' has-warn' : (sc.star > 0 ? ' has-star' : ''));
+    card.className = 'stu' + (sc.abs ? ' is-abs' : (sc.warn ? ' has-warn' : (sc.star > 0 ? ' has-star' : '')));
 
     // 有星星就一直显示，警告叠加在后面，不覆盖
     let tally = '';
@@ -434,13 +453,16 @@ function render() {
     if (sc.warn) tally = tally ? tally + '　⚠' : '⚠';
 
     card.innerHTML = '<div class="first"></div><div class="rest"></div><div class="tally"></div>' +
-                     '<button class="flag" title="标记表现不佳">⚠</button>';
+                     '<button class="flag" title="标记表现不佳">⚠</button>' +
+                     '<button class="absflag" title="标记缺勤">🚫</button>';
     card.querySelector('.first').textContent = n.first;
     card.querySelector('.rest').textContent = n.rest;
     card.querySelector('.tally').textContent = tally;
 
-    card.addEventListener('click', () => act(i, 'star'));
+    // 缺勤的卡片点了不加星：防止顺手误点给不在场的学生记分
+    card.addEventListener('click', () => { if (sc.abs) return; act(i, 'star'); });
     card.querySelector('.flag').addEventListener('click', e => { e.stopPropagation(); act(i, 'warn'); });
+    card.querySelector('.absflag').addEventListener('click', e => { e.stopPropagation(); act(i, 'abs'); });
     grid.appendChild(card);
   });
 }
@@ -452,7 +474,8 @@ function act(i, type) {
   const sc = c.scores[i];
   // 星星和警告并存：谁也不抵消谁，两件事都是真实发生的
   if (type === 'star') { sc.star++; }
-  else { sc.warn = !sc.warn; }
+  else if (type === 'warn') { sc.warn = !sc.warn; }
+  else { sc.abs = !sc.abs; }   // 缺勤开关，同样可撤销
   save(); render();
 }
 
@@ -596,17 +619,21 @@ function marked() {
   const c = cur();
   const all = c.roster.map((n, i) => ({ name: n, s: c.scores[i] }));
   return {
-    stars: all.filter(x => x.s.star > 0 && !x.s.warn),
-    warns: all.filter(x => x.s.warn && x.s.star === 0),
-    both:  all.filter(x => x.s.warn && x.s.star > 0),
+    absent: all.filter(x => x.s.abs),
+    stars: all.filter(x => !x.s.abs && x.s.star > 0 && !x.s.warn),
+    warns: all.filter(x => !x.s.abs && x.s.warn && x.s.star === 0),
+    both:  all.filter(x => !x.s.abs && x.s.warn && x.s.star > 0),
   };
 }
 
 const starTxt = x => x.name + (x.s.star > 1 ? ' ×' + x.s.star : '');
 
 $('finish').onclick = () => {
-  const { stars, warns, both } = marked();
+  const { absent, stars, warns, both } = marked();
   let html = '';
+  if (absent.length) html += '<b style="color:var(--dim)">🚫 缺勤：</b>' +
+    absent.map(x => x.name + (x.s.star > 0 ? '（已有⭐' + x.s.star + '）' : '')).join('、') +
+    '<span style="color:var(--dim)">　→ 标进 Excel 出勤列</span><br>';
   if (stars.length) html += '<b class="s">⭐ 优秀：</b>' + stars.map(starTxt).join('、') + '<br>';
   if (warns.length) html += '<b class="w">⚠ 不佳：</b>' + warns.map(x => x.name).join('、') + '<br>';
   if (both.length) html += '<b class="b">⚡ 两者都有 —— Excel 记 ⭐ 还是 ⚠，你判断：</b>' +
@@ -617,10 +644,11 @@ $('finish').onclick = () => {
 };
 
 $('download').onclick = () => {
-  const { stars, warns, both } = marked();
+  const { absent, stars, warns, both } = marked();
   const today = new Date().toISOString().slice(0, 10);
   const cls = cur().name;
   const rows = [['班级', '日期', '学生姓名', '本节课表现', '星数']];
+  absent.forEach(x => rows.push([cls, today, x.name, '🚫 缺勤', x.s.star || 0]));
   stars.forEach(x => rows.push([cls, today, x.name, '⭐ 优秀', x.s.star]));
   warns.forEach(x => rows.push([cls, today, x.name, '⚠ 不佳', 0]));
   both.forEach(x => rows.push([cls, today, x.name, '⭐+⚠ 两者都有', x.s.star]));
