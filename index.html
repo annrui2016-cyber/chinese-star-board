@@ -291,7 +291,7 @@
     <div class="clearall-wrap" style="margin-top:8px">
       <button class="linklike" id="showGuide" style="color:var(--dim)">使用说明</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.9</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.9.1</div>
   </div>
 </div>
 
@@ -314,11 +314,11 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.9</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.9.1</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。<b>如果他有警告在身，这一点会先消掉一个警告</b>——改过自新，消完警告才继续得星。</span></div></li>
-      <li><span class="n">2</span><div><b>点卡片右上角的小圈 = 记一次 ⚠，可以连点</b><br><span class="sub">⚠、⚠⚠，满三次名字旁挂上红色 <b>⚠3</b> 标、卡片加深——记录不会自己消失，再点也不会清零；想消警告，只有让学生用好表现挣回来（点名字，一次消一个），或按「撤销」。三次警告等于什么，按你的班规来，看板只负责让全班看见。<b>已有的星星不会被警告拿走</b>：好事和错事都是真的。<b>左上角的小圈按次序切换：出勤 → 🚫缺勤 → ⏰迟到 → 出勤</b>。缺勤的卡片变灰、点卡片不再计星。</span></div></li>
+      <li><span class="n">2</span><div><b>点卡片右上角的小圈 = 记一次 ⚠，可以连点</b><br><span class="sub">⚠、⚠⚠，满三次名字旁挂上红色 <b>⚠3</b> 标、卡片加深——记录不会自己消失，再点也不会清零；想消警告，只有让学生用好表现挣回来（点名字，一次消一个），或按「撤销」。三次警告等于什么，按你的班规来，看板只负责让全班看见。<b>已有的星星不会被警告拿走</b>：好事和错事都是真的。<b>左上角的小圈按次序切换：出勤 → 🚫缺勤 → ⏰迟到 → 出勤</b>。缺勤的卡片变灰，星星和警告都点不了——人不在，任何标记都不落他头上。</span></div></li>
       <li><span class="n">3</span><div><b>点错了按「撤销」，想重来按「重置」</b><br><span class="sub">都在左上角。撤销可以连按、一路退回去，刷新页面也不丢。重置有两种：只清空星星（名单保留），或删掉整个班从头开始。</span></div></li>
       <li><span class="n">4</span><div><b>教好几个班？用左上角的「班级」下拉</b><br><span class="sub">上课前选一下这节课是哪个班，就这一下。<b>加新班：点开同一个下拉，最后一项就是「＋ 新建班级」。</b>每个班的名单和当堂星星各存各的，互不影响。想改班名、加减学生或<b>删掉一个班</b>，都在「改名单」里。</span></div></li>
       <li><span class="n">5</span><div><b>下课点「下课小结」——里面有照抄清单</b><br><span class="sub">缺勤、迟到、⭐、⚠ 按名单顺序列成清单，序号就是 Excel 里的行序，从上往下填即可，也可下载表格留痕。<b>课间来不及抄？直接去下一个班</b>——每个班的板子各自保留，晚上逐班打开慢慢抄，抄完再点「下课，清空星星」。Excel 才是成绩账本。</span></div></li>
@@ -492,9 +492,9 @@ function render() {
     ab.textContent = sc.att === 2 ? '⏰' : '🚫';
     ab.title = sc.att === 0 ? '标记缺勤（再点=迟到，再点=恢复出勤）' : (sc.att === 1 ? '当前：缺勤。点一下改为迟到' : '当前：迟到。点一下恢复出勤');
 
-    // 缺勤的卡片点了不加星：防止顺手误点给不在场的学生记分
+    // 缺勤的卡片星星和警告都点不了：人不在教室，任何标记都不该落到他头上
     card.addEventListener('click', () => { if (sc.att === 1) return; act(i, 'star'); });
-    card.querySelector('.flag').addEventListener('click', e => { e.stopPropagation(); act(i, 'warn'); });
+    card.querySelector('.flag').addEventListener('click', e => { e.stopPropagation(); if (sc.att === 1) return; act(i, 'warn'); });
     ab.addEventListener('click', e => { e.stopPropagation(); act(i, 'att'); });
     grid.appendChild(card);
   });
