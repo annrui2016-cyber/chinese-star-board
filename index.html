@@ -298,7 +298,7 @@
     <div class="clearall-wrap" style="margin-top:8px">
       <button class="linklike" id="showGuide" style="color:var(--dim)">使用说明</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.10.1</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.11</div>
   </div>
 </div>
 
@@ -321,14 +321,14 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.10.1</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.11</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。<b>如果他有警告在身，这一点会先消掉一个警告</b>——改过自新，消完警告才继续得星。</span></div></li>
       <li><span class="n">2</span><div><b>点卡片右上角的小圈 = 记一次 ⚠，可以连点</b><br><span class="sub">⚠、⚠⚠，满三次名字旁挂上红色 <b>⚠3</b> 标、卡片加深——记录不会自己消失，再点也不会清零；想消警告，只有让学生用好表现挣回来（点名字，一次消一个），或按「撤销」。三次警告等于什么，按你的班规来，看板只负责让全班看见。<b>已有的星星不会被警告拿走</b>：好事和错事都是真的。<b>左上角的小圈按次序切换：出勤 → 🚫缺勤 → ⏰迟到 → 出勤</b>。缺勤的卡片变灰，星星和警告都点不了——人不在，任何标记都不落他头上。</span></div></li>
       <li><span class="n">3</span><div><b>点错了按「撤销」，想重来按「重置」</b><br><span class="sub">都在左上角。撤销可以连按、一路退回去，刷新页面也不丢。重置有两种：清空全部星星和警告（名单保留，误点可撤销），或删掉整个班从头开始。</span></div></li>
       <li><span class="n">4</span><div><b>教好几个班？用左上角的「班级」下拉</b><br><span class="sub">上课前选一下这节课是哪个班，就这一下。<b>加新班：点开同一个下拉，最后一项就是「＋ 新建班级」。</b>每个班的名单和当堂星星各存各的，互不影响。想改班名、加减学生或<b>删掉一个班</b>，都在「改名单」里。</span></div></li>
-      <li><span class="n">5</span><div><b>下课点「下课小结」——里面有照抄清单</b><br><span class="sub">缺勤、迟到、⭐、⚠ 按名单顺序列成清单，序号就是 Excel 里的行序，从上往下填即可，也可下载表格留痕。<b>课间来不及抄？直接去下一个班</b>——每个班的板子各自保留，晚上逐班打开慢慢抄，抄完再点「下课，清空星星」。Excel 才是成绩账本。想玩「集星换礼物」？下课选<b>「保留星星」</b>——警告和考勤照常清零，星星跨课累计，满 5 颗兑换、不清零接着攒（10 颗换第二件）。星星存在这台电脑里，发礼物时在 Excel 记个 ⭐ 当备份。</span></div></li>
+      <li><span class="n">5</span><div><b>下课点「下课小结」——里面有照抄清单</b><br><span class="sub">缺勤、迟到、⭐、⚠ 按名单顺序列成清单，序号就是 Excel 里的行序，从上往下填即可，也可下载表格留痕。<b>课间来不及抄？直接去下一个班</b>——每个班的板子各自保留，晚上逐班打开慢慢抄，抄完再点「下课，清空星星」。Excel 才是成绩账本。想玩「集星换礼物」？下课选<b>「保留星星」</b>——警告和考勤照常清零，星星跨课累计，<b>每满 5 颗自动变成一个 🎁</b>、星星从零重新数，礼物一直挂在卡上当荣誉。星星存在这台电脑里，发礼物时在 Excel 记个 ⭐ 当备份。</span></div></li>
     </ol>
     <button class="primary wide" id="guideOk">知道了，开始上课</button>
   </div>
@@ -482,11 +482,15 @@ function render() {
     else if (sc.star > 0) cls += ' has-star';
     card.className = cls;
 
-    // 迟到、星星、警告并列显示，谁也不覆盖谁；满3次警告改由名字旁的 ⚠3 红标承担
+    // 迟到、礼物、星星、警告并列显示；满3次警告改由名字旁的 ⚠3 红标承担
+    // 集星班(用过「保留星星」)自动进位显示：每5颗星=1个🎁,星星只显示零头——底层仍记总数,撤销和CSV不受影响
     let tally = '';
     if (sc.att === 1) tally = '缺勤';
     if (sc.att === 2) tally = '⏰';
-    if (sc.star > 0) tally += (tally ? ' ' : '') + (sc.star <= 4 ? '⭐'.repeat(sc.star) : '⭐×' + sc.star);
+    let gifts = 0, showStar = sc.star;
+    if (c.giftMode) { gifts = Math.floor(sc.star / 5); showStar = sc.star % 5; }
+    if (gifts > 0) tally += (tally ? ' ' : '') + (gifts <= 4 ? '🎁'.repeat(gifts) : '🎁×' + gifts);
+    if (showStar > 0) tally += (tally ? ' ' : '') + (showStar <= 4 ? '⭐'.repeat(showStar) : '⭐×' + showStar);
     if (sc.warn > 0 && sc.warn < 3) tally += (tally ? '　' : '') + '⚠'.repeat(sc.warn);
 
     card.innerHTML = '<div class="first"><span class="fn"></span><span class="w3badge" hidden>⚠3</span></div>' +
@@ -744,6 +748,7 @@ $('next').onclick = () => {
     const c = cur();
     snapshot(c);
     c.scores = c.roster.map(() => ({ star: 0, warn: 0, att: 0 }));
+    c.giftMode = false;   // 清空=退出集星玩法,恢复普通显示
     save();
     $('summary').style.display = 'none';
     render();
@@ -752,10 +757,11 @@ $('next').onclick = () => {
 
 // 集星换礼物玩法：星星跨课累计，警告和考勤仍是"本节课的事实"、每课清零
 $('nextKeep').onclick = () => {
-  ask('保留星星、只清空本节课的警告和考勤？\n\n集星换礼物玩法：星星继续累计，谁满 5 颗就兑换，兑换后不清零，攒到 10 颗换第二件。\n提醒：星星存在这台电脑的浏览器里，发礼物时在 Excel 参与列记个 ⭐ 当备份。', () => {
+  ask('保留星星、只清空本节课的警告和考勤？\n\n集星换礼物玩法：每攒满 5 颗星，卡片上自动变成一个 🎁、星星从零重新数——发实物礼物后 🎁 留在卡上当荣誉记录。\n提醒：星星存在这台电脑的浏览器里，发礼物时在 Excel 参与列记个 ⭐ 当备份。', () => {
     const c = cur();
     snapshot(c);
     c.scores.forEach(s => { s.warn = 0; s.att = 0; });
+    c.giftMode = true;   // 集星玩法开启:卡片按 5颗=1🎁 进位显示
     save();
     $('summary').style.display = 'none';
     render();
