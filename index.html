@@ -302,7 +302,7 @@
     <div class="clearall-wrap" style="margin-top:8px">
       <button class="linklike" id="showGuide" style="color:var(--dim)">使用说明</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.12.3</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.12.4</div>
   </div>
 </div>
 
@@ -325,7 +325,7 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.12.3</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.12.4</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。<b>如果他有警告在身，这一点会先消掉一个警告</b>——改过自新，消完警告才继续得星。</span></div></li>
@@ -575,7 +575,7 @@ $('resetBtn').onclick = () => {
   wrap.className = 'modal'; wrap.style.display = 'flex'; wrap.style.zIndex = 50;
   wrap.innerHTML = '<div class="panel" style="max-width:440px">' +
     '<p style="font-size:15px;line-height:1.7;color:var(--ink);margin-bottom:16px"></p>' +
-    '<button class="primary wide" style="margin-top:0" data-a="stars">清空全部 ⭐ 和 ⚠<br><span style="font-size:12px;font-weight:400;opacity:.75">名单保留 · 集星累计的星星也会清空 · 误点可按「撤销」恢复</span></button>' +
+    '<button class="primary wide" style="margin-top:0" data-a="stars">清空全部 ⭐ 和 ⚠<br><span style="font-size:12px;font-weight:400;opacity:.75">名单保留 · 集星累计和图标选择一并重置 · 误点可按「撤销」恢复星星</span></button>' +
     '<button class="wide danger" style="margin-top:10px" data-a="class">删除这个班，从头开始<br><span style="font-size:12px;font-weight:400;opacity:.75">名单和星星一起删掉</span></button>' +
     '<button class="wide" style="margin-top:10px" data-a="cancel">取消</button></div>';
   wrap.querySelector('p').textContent = '重置「' + cur().name + '」——想怎么重置？';
@@ -585,6 +585,8 @@ $('resetBtn').onclick = () => {
     c.hist.push(JSON.stringify(c.scores));   // 清空前存快照：误点可撤销
     if (c.hist.length > 80) c.hist.shift();
     c.scores = c.roster.map(() => ({ star: 0, warn: 0, att: 0 }));
+    c.giftMode = false;      // 重置=彻底从头来：退出集星显示,图标下次重选
+    delete c.giftIcon;
     save(); render();
   };
   wrap.querySelector('[data-a="class"]').onclick = () => {
