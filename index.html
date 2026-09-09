@@ -298,7 +298,7 @@
     <div class="clearall-wrap" style="margin-top:8px">
       <button class="linklike" id="showGuide" style="color:var(--dim)">使用说明</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.12</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.12.1</div>
   </div>
 </div>
 
@@ -321,7 +321,7 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.12</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.12.1</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。<b>如果他有警告在身，这一点会先消掉一个警告</b>——改过自新，消完警告才继续得星。</span></div></li>
@@ -751,7 +751,11 @@ function snapshot(c) {
 }
 
 $('next').onclick = () => {
-  ask('下课清空「' + cur().name + '」的全部 ⭐ 和 ⚠？\n（名单保留；集星换礼物玩法请用「保留星星」；误点可按「撤销」恢复）', () => {
+  const gm = cur().giftMode;
+  const msg = gm
+    ? '下课清空「' + cur().name + '」的全部 ⭐ 和 🎁，并退出集星显示？\n\n（误点了？「撤销」可找回星星；集星显示要再点一次「保留星星」才会回来）'
+    : '下课清空「' + cur().name + '」的全部 ⭐ 和 ⚠？\n（名单保留；集星玩法请用「保留星星」；误点可按「撤销」恢复）';
+  ask(msg, () => {
     const c = cur();
     snapshot(c);
     c.scores = c.roster.map(() => ({ star: 0, warn: 0, att: 0 }));
