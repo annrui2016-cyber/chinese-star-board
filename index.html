@@ -302,7 +302,7 @@
     <div class="clearall-wrap" style="margin-top:8px">
       <button class="linklike" id="showGuide" style="color:var(--dim)">使用说明</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.12.8</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.12.9</div>
   </div>
 </div>
 
@@ -325,7 +325,7 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.12.8</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.12.9</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。<b>如果他有警告在身，这一点会先消掉一个警告</b>——改过自新，消完警告才继续得星。</span></div></li>
@@ -342,10 +342,10 @@
 <div class="modal" id="summary">
   <div class="panel">
     <h1>“效率 + 准确”，为教学和评估护航</h1>
-    <p>请根据本节课学生表现填写《课堂记录与成绩跟踪表》。<br>
-    得星的学生是 Excellent 或者 Normal，由你来定。<br>
-    Normal 是 Excel 表中“参与”列的默认格式，不用勾选，只要勾选 Excellent 和 Poor 的学生即可。<br>
-    在“出勤”列中，Present 是默认格式，勾选 Absent 或 Late 即可。</p>
+    <p>▸ 请根据本节课学生表现填写《课堂记录与成绩跟踪表》。<br>
+    ▸ 得星的学生是 Excellent 或者 Normal，由你来定。<br>
+    ▸ Normal 是 Excel 表中“参与”列的默认格式，不用勾选，只要勾选 Excellent 和 Poor 的学生即可。<br>
+    ▸ 在“出勤”列中，Present 是默认格式，勾选 Absent 或 Late 即可。</p>
     <div class="sumline" id="sumtext"></div>
     <div class="row">
       <button id="download">⤓ 下载留痕</button>
@@ -707,7 +707,7 @@ $('finish').onclick = () => {
     if (warnCount) stat.push('<b class="w">⚠ 警告 ' + warnCount + '</b>');
     if (absent.length) stat.push('<b style="color:var(--dim)">🚫 缺勤 ' + absent.length + '</b>');
     if (late.length) stat.push('<b style="color:#b07d1f">⏰ 迟到 ' + late.length + '</b>');
-    html += stat.join('　·　') + '<span style="color:var(--dim)">　（共 ' + cur().roster.length + ' 人）</span>';
+    html += stat.join('　·　');
   }
   if (copy.length) {
     html += '<details><summary>照抄清单（' + copy.length + ' 人）</summary>' +
