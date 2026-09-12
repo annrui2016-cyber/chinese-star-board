@@ -302,7 +302,7 @@
     <div class="clearall-wrap" style="margin-top:8px">
       <button class="linklike" id="showGuide" style="color:var(--dim)">使用说明</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.12.4</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.12.5</div>
   </div>
 </div>
 
@@ -325,7 +325,7 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.12.4</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.12.5</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。<b>如果他有警告在身，这一点会先消掉一个警告</b>——改过自新，消完警告才继续得星。</span></div></li>
@@ -700,7 +700,8 @@ $('finish').onclick = () => {
   let html = '';
   if (absent.length) html += '<b style="color:var(--dim)">🚫 缺勤：</b>' + absent.map(x => x.name).join('、') + '<br>';
   if (late.length) html += '<b style="color:#b07d1f">⏰ 迟到：</b>' + late.map(x => x.name).join('、') + '<br>';
-  if (stars.length) html += '<b class="s">⭐ 优秀：</b>' + stars.map(starTxt).join('、') + '<br>';
+  if (stars.length) html += '<b class="s">⭐ 得星：</b>' + stars.map(starTxt).join('、') +
+    '<span style="color:var(--dim)">　→ 谁记「Excellent」你判断，优秀留给真正突出的，其余留空即 Normal</span><br>';
   if (warns.length) html += '<b class="w">⚠ 警告：</b>' + warns.map(warnTxt).join('、') + '<br>';
   if (both.length) html += '<b class="b">⚡ 两者都有 —— Excel 记 ⭐ 还是 ⚠，你判断：</b>' +
     both.map(x => x.name + '（⭐' + x.s.star + '，⚠×' + x.s.warn + '）').join('、') + '<br>';
