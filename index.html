@@ -333,7 +333,7 @@
     <div class="clearall-wrap" style="margin-top:8px">
       <button class="linklike" id="showGuide" style="color:var(--dim)">使用说明</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.13.1</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.13.2</div>
   </div>
 </div>
 
@@ -356,7 +356,7 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.13.1</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.13.2</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。<b>如果他有警告在身，这一点会先消掉一个警告</b>——改过自新，消完警告才继续得星。</span></div></li>
@@ -478,6 +478,8 @@ function load() {
           if (s.warn === undefined) s.warn = 0;
           if (s.att === undefined) s.att = s.abs ? 1 : 0;
           delete s.abs;
+          // 本节课/存罐分离：旧集星班的 star 是累计值,迁进存罐,本节课从0起
+          if (s.bank === undefined) { s.bank = c.giftMode ? s.star : 0; if (c.giftMode) s.star = 0; }
         });
       });
       return true;
@@ -527,11 +529,12 @@ function render() {
     if (sc.att === 1) cls += ' is-abs';
     else if (sc.warn > 0) cls += ' has-warn' + (sc.warn >= 3 ? ' warn3' : '');
     else if (sc.att === 2) cls += ' is-late';
-    else if (sc.star > 0) cls += ' has-star';
+    else if (sc.star > 0 || (c.giftMode && (sc.bank || 0) > 0)) cls += ' has-star';
     card.className = cls;
 
     // 迟到、礼物、星星、警告并列显示；满3次警告改由名字旁的 ⚠3 红标承担
-    // 集星班(用过「保留星星」)自动进位显示：每5颗星=1个🎁,星星只显示零头——底层仍记总数,撤销和CSV不受影响
+    // 集星班(用过「保留星星」)自动进位显示：每5颗星=1个🎁,星星只显示零头
+    // 卡片按 存罐+本节课 的总数进位;而 sc.star 只记本节课,照抄清单/CSV/今日之星都用它=当天数据
     let tally = '';
     if (sc.att === 1) tally = '缺勤';
     if (sc.att === 2) tally = '⏰';
@@ -539,9 +542,10 @@ function render() {
     let trophies = 0, gifts = 0, showStar = sc.star;
     if (c.giftMode) {
       const icon = c.giftIcon || '🎁';
-      trophies = Math.floor(sc.star / 25);
-      gifts = Math.floor((sc.star % 25) / 5);
-      showStar = sc.star % 5;
+      const total = (sc.bank || 0) + sc.star;   // 集星显示 = 存罐(往期攒的) + 本节课新得
+      trophies = Math.floor(total / 25);
+      gifts = Math.floor((total % 25) / 5);
+      showStar = total % 5;
       if (trophies > 0) tally += (tally ? ' ' : '') + (trophies <= 4 ? '🏆'.repeat(trophies) : '🏆×' + trophies);
       if (gifts > 0) tally += (tally ? ' ' : '') + icon.repeat(gifts);
     }
@@ -752,15 +756,15 @@ function makeConfetti() {
   }
 }
 
-function showCelebrate(starList, gm) {
+function showCelebrate(starList) {
   // 取前三名：不足三人全上；否则以第 3 名的星数为门槛，同星数者一并上榜
   const top = starList.length <= 3
     ? starList.slice()
     : starList.filter(x => x.s.star >= starList[2].s.star);
   const vals = [...new Set(top.map(x => x.s.star))];   // 星数，已从多到少
   const medal = v => ['🥇', '🥈', '🥉'][vals.indexOf(v)] || '⭐';
-  const t = gm ? { cn: '星星榜 · 累计最多', en: 'Star Leaders' } : { cn: '今日之星', en: "Today's Stars" };
-  $('celebTitle').innerHTML = '<span class="ct-cn">' + t.cn + '</span><span class="ct-en">🎉 ' + t.en + ' 🎉</span>';
+  // star 只记本节课,所以今日之星永远是"今天"的排名(集星班也一样)
+  $('celebTitle').innerHTML = '<span class="ct-cn">今日之星</span><span class="ct-en">🎉 Today\'s Stars 🎉</span>';
   $('celebList').innerHTML = top.map(x =>
     '<div class="star-row"><span class="sm">' + medal(x.s.star) + '</span>' +
     '<span class="sn">' + x.name + '</span>' +
@@ -806,7 +810,7 @@ $('finish').onclick = () => {
   if (!html) html = '<span style="color:var(--dim)">本节课没有任何标记，Excel 里这一列整列留空即可。</span>';
   $('sumtext').innerHTML = html;
 
-  if (starList.length) showCelebrate(starList, cur().giftMode);
+  if (starList.length) showCelebrate(starList);
   else $('summary').style.display = 'flex';
 };
 
@@ -871,7 +875,8 @@ $('next').onclick = () => {
 function keepStarsClear() {
   const c = cur();
   snapshot(c);
-  c.scores.forEach(s => { s.warn = 0; s.att = 0; });
+  // 本节课的星存进罐子、本节课归零：卡片上的🎁进度不变,下节课的照抄清单重新从0数
+  c.scores.forEach(s => { s.bank = (s.bank || 0) + s.star; s.star = 0; s.warn = 0; s.att = 0; });
   c.giftMode = true;
   save();
   $('summary').style.display = 'none';
