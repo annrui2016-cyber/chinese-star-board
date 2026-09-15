@@ -271,6 +271,35 @@
   .sumline summary { cursor: pointer; font-weight: 700; font-size: 15px; }
   .sumline summary:hover { color: var(--star); }
   .sumline summary .sub2 { color: var(--dim); font-weight: 400; font-size: 12.5px; }
+  /* 下课小结·三榜 */
+  .sumline .lists { margin-top: 6px; }
+  .sumline .lst { margin-top: 13px; font-size: 15px; line-height: 1.7; }
+  .sumline .lst:first-child { margin-top: 6px; }
+  .sumline .lh { font-weight: 700; font-size: 14px; margin-bottom: 3px; }
+  .sumline .lh.s { color: var(--star); }
+  .sumline .lh.w { color: var(--warn); }
+  .sumline .lh.a { color: var(--dim); }
+  /* 今日之星·撒花 */
+  #celebrate { z-index: 30; }
+  #celebrate .panel { max-width: 440px; text-align: center; position: relative; z-index: 1; }
+  .celeb-title { font-size: 25px; margin-bottom: 16px; }
+  .star-row {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--star-bg); border-radius: 10px;
+    padding: 11px 16px; margin-bottom: 9px;
+  }
+  .star-row .sm { font-size: 25px; width: 32px; flex: 0 0 auto; }
+  .star-row .sn { flex: 1; text-align: left; font-size: 19px; font-weight: 700; }
+  .star-row .sc { font-size: 16px; color: var(--star); font-weight: 700; }
+  .confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .confetti i {
+    position: absolute; top: -16px; width: 9px; height: 14px;
+    border-radius: 2px; animation: fall linear forwards;
+  }
+  @keyframes fall {
+    0%   { transform: translateY(0) rotateZ(0); opacity: 1; }
+    100% { transform: translateY(86vh) rotateZ(420deg); opacity: .85; }
+  }
 </style>
 </head>
 <body>
@@ -302,7 +331,7 @@
     <div class="clearall-wrap" style="margin-top:8px">
       <button class="linklike" id="showGuide" style="color:var(--dim)">使用说明</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.12.10</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.13.0</div>
   </div>
 </div>
 
@@ -325,7 +354,7 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.12.10</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.13.0</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。<b>如果他有警告在身，这一点会先消掉一个警告</b>——改过自新，消完警告才继续得星。</span></div></li>
@@ -354,6 +383,16 @@
     </div>
     <button class="primary wide" id="next">下课，清空星星</button>
     <button class="wide" id="nextKeep" style="margin-top:8px">下课，保留星星<span style="font-size:12px;color:var(--dim)">　集星玩法 · 只清警告和考勤</span></button>
+  </div>
+</div>
+
+<!-- ============ 今日之星 · 撒花 ============ -->
+<div class="modal" id="celebrate">
+  <div class="confetti" id="confetti"></div>
+  <div class="panel">
+    <div class="celeb-title" id="celebTitle">🎉 今日之星</div>
+    <div id="celebList"></div>
+    <button class="primary wide" id="celebGo">查看下课小结 →</button>
   </div>
 </div>
 
@@ -696,34 +735,76 @@ function marked() {
 
 const starTxt = x => x.name + (x.s.star > 1 ? ' ×' + x.s.star : '');
 
+// 今日之星：星星最多的前三名（同星数并列，多则一同上榜）——先撒花给学生看，再进小结给老师用
+function makeConfetti() {
+  const box = $('confetti');
+  box.innerHTML = '';
+  const colors = ['#f2c94c', '#1f8a4c', '#e08a3c', '#5f8571', '#e57373', '#f2994a'];
+  for (let i = 0; i < 64; i++) {
+    const p = document.createElement('i');
+    p.style.left = (Math.random() * 100) + '%';
+    p.style.background = colors[i % colors.length];
+    p.style.animationDelay = (Math.random() * 0.7) + 's';
+    p.style.animationDuration = (2.4 + Math.random() * 1.7) + 's';
+    box.appendChild(p);
+  }
+}
+
+function showCelebrate(starList, gm) {
+  // 取前三名：不足三人全上；否则以第 3 名的星数为门槛，同星数者一并上榜
+  const top = starList.length <= 3
+    ? starList.slice()
+    : starList.filter(x => x.s.star >= starList[2].s.star);
+  const vals = [...new Set(top.map(x => x.s.star))];   // 星数，已从多到少
+  const medal = v => ['🥇', '🥈', '🥉'][vals.indexOf(v)] || '⭐';
+  $('celebTitle').textContent = gm ? '⭐ 星星榜 · 累计最多' : '🎉 今日之星';
+  $('celebList').innerHTML = top.map(x =>
+    '<div class="star-row"><span class="sm">' + medal(x.s.star) + '</span>' +
+    '<span class="sn">' + x.name + '</span>' +
+    '<span class="sc">⭐×' + x.s.star + '</span></div>'
+  ).join('');
+  makeConfetti();
+  $('celebrate').style.display = 'flex';
+}
+
+function closeCelebrate() {
+  $('celebrate').style.display = 'none';
+  $('confetti').innerHTML = '';
+  $('summary').style.display = 'flex';
+}
+$('celebGo').onclick = closeCelebrate;
+$('celebrate').onclick = e => { if (e.target.id === 'celebrate') closeCelebrate(); };
+
 $('finish').onclick = () => {
   const { absent, late, stars, warns, both, copy } = marked();
+  // 三个榜：星星榜/警告榜按数量由多到少，同数按名单序号；缺勤迟到榜缺勤在前
+  const starList = stars.concat(both).sort((a, b) => b.s.star - a.s.star || a.idx - b.idx);
+  const warnList = warns.concat(both).sort((a, b) => b.s.warn - a.s.warn || a.idx - b.idx);
+  const attList = absent.concat(late);
+
   let html = '';
-  const starCount = stars.length + both.length;
-  const warnCount = warns.length + both.length;
   if (copy.length) {
     const stat = [];
-    if (starCount) stat.push('<b class="s">⭐ 得星 ' + starCount + '</b>');
-    if (warnCount) stat.push('<b class="w">⚠ 警告 ' + warnCount + '</b>');
+    if (starList.length) stat.push('<b class="s">⭐ 得星 ' + starList.length + '</b>');
+    if (warnList.length) stat.push('<b class="w">⚠ 警告 ' + warnList.length + '</b>');
     if (absent.length) stat.push('<b style="color:var(--dim)">🚫 缺勤 ' + absent.length + '</b>');
     if (late.length) stat.push('<b style="color:#b07d1f">⏰ 迟到 ' + late.length + '</b>');
     html += stat.join('　·　');
-  }
-  if (copy.length) {
-    html += '<details><summary>照抄清单（' + copy.length + ' 人）</summary>' +
-      '<div style="margin-top:8px">' +
-      copy.map(x => {
-        const m = [];
-        if (x.s.att === 1) m.push('缺勤');
-        if (x.s.att === 2) m.push('迟到');
-        if (x.s.star > 0) m.push('⭐×' + x.s.star);
-        if (x.s.warn > 0) m.push('⚠×' + x.s.warn);
-        return x.idx + '. ' + x.name + '　' + m.join(' ');
-      }).join('<br>') + '</div></details>';
+
+    html += '<details open><summary>照抄清单 <span class="sub2">· 三个榜分开列，勾谁进 Excel 由你定</span></summary><div class="lists">';
+    if (starList.length) html += '<div class="lst"><div class="lh s">⭐ 星星榜（' + starList.length + '）</div>' +
+      starList.map(x => x.idx + '. ' + x.name + '　⭐×' + x.s.star).join('<br>') + '</div>';
+    if (warnList.length) html += '<div class="lst"><div class="lh w">⚠ 警告榜（' + warnList.length + '）</div>' +
+      warnList.map(x => x.idx + '. ' + x.name + '　⚠×' + x.s.warn).join('<br>') + '</div>';
+    if (attList.length) html += '<div class="lst"><div class="lh a">🚫 缺勤迟到榜（' + attList.length + '）</div>' +
+      attList.map(x => x.idx + '. ' + x.name + '　' + (x.s.att === 1 ? '缺勤' : '迟到')).join('<br>') + '</div>';
+    html += '</div></details>';
   }
   if (!html) html = '<span style="color:var(--dim)">本节课没有任何标记，Excel 里这一列整列留空即可。</span>';
   $('sumtext').innerHTML = html;
-  $('summary').style.display = 'flex';
+
+  if (starList.length) showCelebrate(starList, cur().giftMode);
+  else $('summary').style.display = 'flex';
 };
 
 $('download').onclick = () => {
