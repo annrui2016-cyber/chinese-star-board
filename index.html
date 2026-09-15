@@ -282,7 +282,9 @@
   /* 今日之星·撒花 */
   #celebrate { z-index: 30; }
   #celebrate .panel { max-width: 440px; text-align: center; position: relative; z-index: 1; }
-  .celeb-title { font-size: 25px; margin-bottom: 16px; }
+  .celeb-title { margin-bottom: 18px; }
+  .celeb-title .ct-cn { display: block; font-size: 16px; color: var(--dim); font-weight: 700; letter-spacing: 3px; }
+  .celeb-title .ct-en { display: block; font-size: 34px; font-weight: 800; color: var(--ink); margin-top: 3px; line-height: 1.15; }
   .star-row {
     display: flex; align-items: center; gap: 12px;
     background: var(--star-bg); border-radius: 10px;
@@ -331,7 +333,7 @@
     <div class="clearall-wrap" style="margin-top:8px">
       <button class="linklike" id="showGuide" style="color:var(--dim)">使用说明</button>
     </div>
-    <div class="byline">Designed by Dr. Zhou Fang · v2.13.0</div>
+    <div class="byline">Designed by Dr. Zhou Fang · v2.13.1</div>
   </div>
 </div>
 
@@ -354,7 +356,7 @@
 <!-- ============ 首次浮层 ============ -->
 <div class="modal" id="guide">
   <div class="panel">
-    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.13.0</span></h1>
+    <h1>课堂星星榜 · 怎么用 <span style="font-size:12px;color:var(--dim);font-weight:400">v2.13.1</span></h1>
     <p>投影出来，学生自己看得见。一共就两个动作。</p>
     <ol class="steps">
       <li><span class="n">1</span><div><b>点学生的名字 = 给一颗 ⭐</b><br><span class="sub">想给几颗点几下，不限次数。卡片变绿，星星累加，全班都看得见谁攒得多。<b>如果他有警告在身，这一点会先消掉一个警告</b>——改过自新，消完警告才继续得星。</span></div></li>
@@ -390,7 +392,7 @@
 <div class="modal" id="celebrate">
   <div class="confetti" id="confetti"></div>
   <div class="panel">
-    <div class="celeb-title" id="celebTitle">🎉 今日之星</div>
+    <div class="celeb-title" id="celebTitle"><span class="ct-cn">今日之星</span><span class="ct-en">🎉 Today's Stars 🎉</span></div>
     <div id="celebList"></div>
     <button class="primary wide" id="celebGo">查看下课小结 →</button>
   </div>
@@ -757,7 +759,8 @@ function showCelebrate(starList, gm) {
     : starList.filter(x => x.s.star >= starList[2].s.star);
   const vals = [...new Set(top.map(x => x.s.star))];   // 星数，已从多到少
   const medal = v => ['🥇', '🥈', '🥉'][vals.indexOf(v)] || '⭐';
-  $('celebTitle').textContent = gm ? '⭐ 星星榜 · 累计最多' : '🎉 今日之星';
+  const t = gm ? { cn: '星星榜 · 累计最多', en: 'Star Leaders' } : { cn: '今日之星', en: "Today's Stars" };
+  $('celebTitle').innerHTML = '<span class="ct-cn">' + t.cn + '</span><span class="ct-en">🎉 ' + t.en + ' 🎉</span>';
   $('celebList').innerHTML = top.map(x =>
     '<div class="star-row"><span class="sm">' + medal(x.s.star) + '</span>' +
     '<span class="sn">' + x.name + '</span>' +
